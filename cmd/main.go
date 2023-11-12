@@ -5,11 +5,13 @@ import (
 	"nats-streaming-web/dbclient"
 	"nats-streaming-web/internal/config"
 	"nats-streaming-web/internal/logger"
+	"nats-streaming-web/pkg/api/handler"
 	"nats-streaming-web/pkg/cache"
 	"nats-streaming-web/pkg/client"
 	"nats-streaming-web/pkg/model"
 	"nats-streaming-web/pkg/publisher"
 	"nats-streaming-web/service"
+	"net/http"
 	"time"
 )
 
@@ -97,4 +99,17 @@ func main() {
 
 	// Даем время для обработки сообщения
 	time.Sleep(5 * time.Second)
+
+	_, err = dbclient.NewDBClient(cfg.DBConnectionString)
+	if err != nil {
+		logger.ErrorLogger.Println("Ошибка http", err)
+	}
+
+	orderHandler := handler.NewOrderHandler(dbClient)
+	http.HandleFunc("/order", orderHandler)
+
+	// Запуск HTTP-сервера
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		logger.ErrorLogger.Println("Ошибка http", err)
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "github.com/lib/pq"
 	"nats-streaming-web/ent"
+	"nats-streaming-web/ent/orderdata"
 	"nats-streaming-web/internal/logger"
 	"nats-streaming-web/pkg/model"
 )
@@ -22,6 +23,12 @@ func NewDBClient(dataSourceName string) (*DBClient, error) {
 		logger.ErrorLogger.Println("Ошибка применения миграции")
 	}
 	return &DBClient{Client: client}, nil
+}
+
+func (db *DBClient) GetOrderData(ctx context.Context, orderID string) (*ent.OrderData, error) {
+	return db.Client.OrderData.Query().
+		Where(orderdata.OrderUID(orderID)).
+		Only(ctx)
 }
 
 func (db *DBClient) SaveOrderData(ctx context.Context, orderData *model.OrderData) (*ent.OrderData, error) {
