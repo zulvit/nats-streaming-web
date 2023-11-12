@@ -60,7 +60,7 @@ type Item struct {
 	Status      int    `json:"status"`
 }
 
-func (o *OrderData) Serialize() ([]byte, error) {
+func (o *OrderData) Serializable() ([]byte, error) {
 	return json.Marshal(o)
 }
 

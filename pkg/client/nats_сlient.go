@@ -2,8 +2,8 @@ package client
 
 import (
 	"github.com/nats-io/stan.go"
+	"nats-streaming-web/internal/config"
 	"nats-streaming-web/internal/logger"
-	"nats-streaming-web/pkg/config"
 )
 
 // NatsClient структура для управления соединением с NATS.
