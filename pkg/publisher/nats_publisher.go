@@ -4,8 +4,11 @@ import (
 	"context"
 	"github.com/nats-io/stan.go"
 	"nats-streaming-web/internal/logger"
-	"nats-streaming-web/pkg/model"
 )
+
+type Serializable interface {
+	Serializable() ([]byte, error)
+}
 
 type Publisher struct {
 	NatsConn stan.Conn
@@ -17,8 +20,8 @@ func NewPublisher(natsConn stan.Conn) *Publisher {
 	}
 }
 
-func (p Publisher) PublishOrder(ctx context.Context, data *model.OrderData, subject string) error {
-	serialize, err := data.Serialize()
+func (p Publisher) Publish(ctx context.Context, data Serializable, subject string) error {
+	serialize, err := data.Serializable()
 	if err != nil {
 		logger.ErrorLogger.Println("Ошибка при сериализации данных заказа:", err)
 		return err
@@ -30,6 +33,6 @@ func (p Publisher) PublishOrder(ctx context.Context, data *model.OrderData, subj
 		return err
 	}
 
-	logger.InfoLogger.Println("Заказ успешно отправлен в NATS:", data.OrderUID)
+	logger.InfoLogger.Println("Данные отправлены в NATS")
 	return nil
 }

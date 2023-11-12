@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"nats-streaming-web/internal/logger"
+	"nats-streaming-web/pkg/client"
 	"nats-streaming-web/pkg/config"
 	"nats-streaming-web/pkg/model"
-	"nats-streaming-web/pkg/natsclient"
-	"nats-streaming-web/pkg/publisher"
+	"nats-streaming-web/pkg/service"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,14 +17,14 @@ func main() {
 	cfg := config.NewConfig()
 
 	// Создание клиента NATS
-	natsClient, err := natsclient.NewNatsClient(cfg)
+	natsClient, err := client.NewNatsClient(cfg)
 	if err != nil {
 		logger.ErrorLogger.Fatalf("Ошибка подключения к NATS: %v\n", err)
 	}
 	defer natsClient.Close()
 
 	// Создание публикатора
-	pub := publisher.NewPublisher(natsClient.Conn)
+	pub := service.NewPublisher(natsClient.Conn)
 
 	orderData := &model.OrderData{
 		OrderUID: "8f380f40",
@@ -36,7 +36,7 @@ func main() {
 		logger.ErrorLogger.Printf("Ошибка при публикации данных: %v\n", err)
 	}
 
-	// Ожидание прерывания программы (например, сигнала SIGINT)
+	// Ожидание прерывания программы
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

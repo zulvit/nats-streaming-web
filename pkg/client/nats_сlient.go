@@ -1,4 +1,4 @@
-package natsclient
+package client
 
 import (
 	"github.com/nats-io/stan.go"
