@@ -5,12 +5,12 @@ import (
 	"nats-streaming-web/dbclient"
 	"nats-streaming-web/internal/config"
 	"nats-streaming-web/internal/logger"
-	"nats-streaming-web/pkg/api/handler"
+	service2 "nats-streaming-web/internal/service"
 	"nats-streaming-web/pkg/cache"
 	"nats-streaming-web/pkg/client"
 	"nats-streaming-web/pkg/model"
 	"nats-streaming-web/pkg/publisher"
-	"nats-streaming-web/service"
+	"nats-streaming-web/pkg/transport/rest"
 	"net/http"
 	"time"
 )
@@ -35,8 +35,8 @@ func main() {
 	}
 
 	// Инициализация сервисов
-	dataProcessor := service.NewDataProcessor(publisher.NewPublisher(natsClient.Conn))
-	clientOrderService := service.NewClientOrderService(natsClient, redisClient, dbClient)
+	dataProcessor := service2.NewDataProcessor(publisher.NewPublisher(natsClient.Conn))
+	clientOrderService := service2.NewClientOrderService(natsClient, redisClient, dbClient)
 
 	// Подписка на обработку сообщений
 	clientOrderService.SubscribeAndProcess(ctx, cfg.Subject)
@@ -105,9 +105,11 @@ func main() {
 		logger.ErrorLogger.Println("Ошибка http", err)
 	}
 
-	orderHandler := handler.NewOrderHandler(dbClient)
+	orderHandler := rest.NewOrderHandler(dbClient)
 	http.HandleFunc("/order", orderHandler)
 
+	// Обработчик для веб-интерфейса
+	http.Handle("/", http.FileServer(http.Dir("./templates")))
 	// Запуск HTTP-сервера
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		logger.ErrorLogger.Println("Ошибка http", err)

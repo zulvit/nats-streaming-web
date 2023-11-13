@@ -25,9 +25,9 @@ func NewDBClient(dataSourceName string) (*DBClient, error) {
 	return &DBClient{Client: client}, nil
 }
 
-func (db *DBClient) GetOrderData(ctx context.Context, orderID string) (*ent.OrderData, error) {
+func (db *DBClient) GetOrderData(ctx context.Context, id int) (*ent.OrderData, error) {
 	return db.Client.OrderData.Query().
-		Where(orderdata.OrderUID(orderID)).
+		Where(orderdata.ID(id)).
 		Only(ctx)
 }
 

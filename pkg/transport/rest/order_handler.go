@@ -1,9 +1,10 @@
-package handler
+package rest
 
 import (
 	"encoding/json"
 	"nats-streaming-web/dbclient"
 	"net/http"
+	"strconv"
 )
 
 func NewOrderHandler(db *dbclient.DBClient) http.HandlerFunc {
@@ -15,7 +16,12 @@ func NewOrderHandler(db *dbclient.DBClient) http.HandlerFunc {
 			return
 		}
 
-		order, err := db.GetOrderData(ctx, orderID)
+		idInt, err := strconv.Atoi(orderID)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+		}
+
+		order, err := db.GetOrderData(ctx, idInt)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
