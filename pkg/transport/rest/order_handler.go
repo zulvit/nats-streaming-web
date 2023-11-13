@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func NewOrderHandler(db *dbclient.DBClient) http.HandlerFunc {
+func NewOrderHandler(db dbclient.IDBClient) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		orderID := request.URL.Query().Get("id")
 		ctx := request.Context()

@@ -14,6 +14,9 @@ type DBClient struct {
 	Client *ent.Client
 	db     *sql.DB
 }
+type IDBClient interface {
+	GetOrderData(ctx context.Context, id int) (*ent.OrderData, error)
+}
 
 func NewDBClient(dataSourceName string) (*DBClient, error) {
 	client, err := ent.Open("postgres", dataSourceName)

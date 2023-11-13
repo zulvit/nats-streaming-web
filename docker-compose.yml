@@ -22,16 +22,16 @@ services:
     ports:
       - "5433:5432"
 
-  app:
-    build: .
-    volumes:
-      - .:/app
-    environment:
-      - NATS_URL=nats://nats-streaming:4222
-      - NATS_SUBJECT=orders
-      - REDIS_URL=redis://redis:6379
-      - DB_CONNECTION_STRING=postgres://postgres:root@postgres:5432/natsdb?sslmode=disable
-    depends_on:
-      - nats-streaming
-      - redis
-      - postgres
+#  app:
+#    build: .
+#    volumes:
+#      - .:/app
+#    environment:
+#      - NATS_URL=nats://nats-streaming:4222
+#      - NATS_SUBJECT=orders
+#      - REDIS_URL=redis://redis:6379
+#      - DB_CONNECTION_STRING=postgres://postgres:root@postgres:5432/natsdb?sslmode=disable
+#    depends_on:
+#      - nats-streaming
+#      - redis
+#      - postgres
