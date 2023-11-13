@@ -9,6 +9,7 @@ import (
 	"nats-streaming-web/pkg/cache"
 	"nats-streaming-web/pkg/client"
 	"nats-streaming-web/pkg/model"
+	"time"
 )
 
 type ClientOrderService struct {
@@ -25,7 +26,7 @@ func NewClientOrderService(natsClient *client.NatsClient, redisClient *cache.Red
 	}
 }
 
-func (s ClientOrderService) SubscribeAndProcess(ctx context.Context, subject string) {
+func (s *ClientOrderService) SubscribeAndProcess(ctx context.Context, subject string) {
 	s.NatsClient.Conn.Subscribe(subject, func(msg *stan.Msg) {
 		var orderData model.OrderData
 		err := json.Unmarshal(msg.Data, &orderData)
@@ -34,18 +35,72 @@ func (s ClientOrderService) SubscribeAndProcess(ctx context.Context, subject str
 			return
 		}
 
-		// Сохранение данных заказа в базу данных
 		_, err = s.DBClient.SaveOrderData(ctx, &orderData)
 		if err != nil {
 			logger.ErrorLogger.Printf("Ошибка при сохранении данных в базе данных: %v\n", err)
-			// Вы можете здесь решить, стоит ли продолжать кэширование, если не удалось сохранить в БД
+
+			cacheErr := s.RedisClient.Set(ctx, "order:"+orderData.OrderUID, msg.Data)
+			if cacheErr != nil {
+				logger.ErrorLogger.Printf("Ошибка при записи в Redis: %v\n", cacheErr)
+			} else {
+				logger.InfoLogger.Printf("Данные успешно закешированы в Redis для OrderUID: %s\n", orderData.OrderUID)
+			}
 			return
 		}
 
-		// Кэширование данных в Redis
 		err = s.RedisClient.Set(ctx, "order:"+orderData.OrderUID, msg.Data)
 		if err != nil {
 			logger.ErrorLogger.Printf("Ошибка при записи в Redis: %v\n", err)
+		} else {
+			logger.InfoLogger.Printf("Данные успешно закешированы в Redis для OrderUID: %s\n", orderData.OrderUID)
 		}
+
 	}, stan.DurableName("my-durable"))
+}
+
+func (s *ClientOrderService) MonitorDBAndRestoreFromCache(ctx context.Context) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if s.DBClient.IsAvailable() {
+				s.restoreOrdersFromCache(ctx)
+			}
+		}
+	}
+}
+
+func (s *ClientOrderService) restoreOrdersFromCache(ctx context.Context) {
+	keys, err := s.RedisClient.Keys(ctx, "order:*")
+	if err != nil {
+		logger.ErrorLogger.Printf("Ошибка при получении ключей из Redis: %v\n", err)
+		return
+	}
+
+	for _, key := range keys {
+		data, err := s.RedisClient.Get(ctx, key)
+		if err != nil {
+			logger.ErrorLogger.Printf("Ошибка при получении данных из Redis для ключа %s: %v\n", key, err)
+			continue
+		}
+
+		var orderData model.OrderData
+		err = json.Unmarshal([]byte(data), &orderData)
+		if err != nil {
+			logger.ErrorLogger.Printf("Ошибка десериализации данных заказа: %v\n", err)
+			continue
+		}
+
+		_, err = s.DBClient.SaveOrderData(ctx, &orderData)
+		if err != nil {
+			logger.ErrorLogger.Printf("Не удалось сохранить данные заказа в БД: %v\n", err)
+			continue
+		}
+
+		s.RedisClient.Del(ctx, key)
+	}
 }

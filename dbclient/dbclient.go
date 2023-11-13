@@ -2,6 +2,7 @@ package dbclient
 
 import (
 	"context"
+	"database/sql"
 	_ "github.com/lib/pq"
 	"nats-streaming-web/ent"
 	"nats-streaming-web/ent/orderdata"
@@ -11,6 +12,7 @@ import (
 
 type DBClient struct {
 	Client *ent.Client
+	db     *sql.DB
 }
 
 func NewDBClient(dataSourceName string) (*DBClient, error) {
@@ -25,13 +27,22 @@ func NewDBClient(dataSourceName string) (*DBClient, error) {
 	return &DBClient{Client: client}, nil
 }
 
-func (db *DBClient) GetOrderData(ctx context.Context, id int) (*ent.OrderData, error) {
-	return db.Client.OrderData.Query().
+func (client *DBClient) IsAvailable() bool {
+	err := client.Ping()
+	return err == nil
+}
+
+func (client *DBClient) Ping() interface{} {
+	return client.db.Ping()
+}
+
+func (client *DBClient) GetOrderData(ctx context.Context, id int) (*ent.OrderData, error) {
+	return client.Client.OrderData.Query().
 		Where(orderdata.ID(id)).
 		Only(ctx)
 }
 
-func (db *DBClient) SaveOrderData(ctx context.Context, orderData *model.OrderData) (*ent.OrderData, error) {
+func (client *DBClient) SaveOrderData(ctx context.Context, orderData *model.OrderData) (*ent.OrderData, error) {
 	// Преобразование []Item в []*model.Item
 	var items []*model.Item
 	for _, item := range orderData.Items {
@@ -51,7 +62,7 @@ func (db *DBClient) SaveOrderData(ctx context.Context, orderData *model.OrderDat
 	}
 
 	// Создание и сохранение объекта OrderData
-	return db.Client.OrderData.Create().
+	return client.Client.OrderData.Create().
 		SetOrderUID(orderData.OrderUID).
 		SetTrackNumber(orderData.TrackNumber).
 		SetEntry(orderData.Entry).
