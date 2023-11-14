@@ -59,7 +59,8 @@ func (s *ClientOrderService) SubscribeAndProcess(ctx context.Context, subject st
 }
 
 func (s *ClientOrderService) MonitorDBAndRestoreFromCache(ctx context.Context) {
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(time.Second * 10)
+	logger.InfoLogger.Println("Проверяем успешность соединения с БД")
 	defer ticker.Stop()
 
 	for {

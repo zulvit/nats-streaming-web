@@ -27,7 +27,8 @@ func NewDBClient(dataSourceName string) (*DBClient, error) {
 	if err != nil {
 		logger.ErrorLogger.Println("Ошибка применения миграции")
 	}
-	return &DBClient{Client: client}, nil
+	sqlDB, err := sql.Open("postgres", dataSourceName)
+	return &DBClient{Client: client, db: sqlDB}, nil
 }
 
 func (client *DBClient) IsAvailable() bool {
@@ -36,6 +37,9 @@ func (client *DBClient) IsAvailable() bool {
 }
 
 func (client *DBClient) Ping() interface{} {
+	if client.db == nil {
+		logger.ErrorLogger.Println("database connection is not initialized")
+	}
 	return client.db.Ping()
 }
 

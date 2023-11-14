@@ -41,6 +41,9 @@ func main() {
 	clientOrderService := service2.NewClientOrderService(natsClient, redisClient, dbClient)
 	clientOrderService.SubscribeAndProcess(ctx, cfg.Subject)
 
+	// Запуск мониторинга в отдельной горутине
+	go clientOrderService.MonitorDBAndRestoreFromCache(ctx)
+
 	// Создание и публикация тестовых данных
 	if err := testutils.CreateAndPublishTestOrder(ctx, dataProcessor, cfg.Subject); err != nil {
 		logger.ErrorLogger.Println("Ошибка при публикации тестового заказа:", err)
@@ -54,7 +57,4 @@ func main() {
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		logger.ErrorLogger.Println("Ошибка http", err)
 	}
-
-	// Запуск мониторинга в отдельной горутине
-	go clientOrderService.MonitorDBAndRestoreFromCache(ctx)
 }
