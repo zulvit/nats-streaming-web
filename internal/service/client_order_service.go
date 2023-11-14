@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/nats-io/stan.go"
 	"nats-streaming-web/dbclient"
+	"nats-streaming-web/internal/config"
 	"nats-streaming-web/internal/logger"
 	"nats-streaming-web/pkg/cache"
 	"nats-streaming-web/pkg/client"
@@ -76,6 +77,14 @@ func (s *ClientOrderService) MonitorDBAndRestoreFromCache(ctx context.Context) {
 }
 
 func (s *ClientOrderService) restoreOrdersFromCache(ctx context.Context) {
+	cfg := config.NewConfig()
+	dbClient, err := dbclient.NewDBClient(cfg.DBConnectionString)
+	if err != nil {
+		logger.ErrorLogger.Println("Ошибка применения миграции БД")
+	}
+
+	dbClient.SaveOrderData(ctx, &model.OrderData{})
+
 	keys, err := s.RedisClient.Keys(ctx, "order:*")
 	if err != nil {
 		logger.ErrorLogger.Printf("Ошибка при получении ключей из Redis: %v\n", err)
